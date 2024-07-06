@@ -23,24 +23,24 @@ def get_vector_from_label(data, vae, embedding_dim, label):
 
         _, _, z = vae.encoder.predict(np.array(im), verbose=0)
 
-        z_POS = z[attribute == 1]
-        z_NEG = z[attribute == -1]
+        z_POS = z[attribute == 1]   # (sampled) latent space vector of current batch of positive data(blond figures)
+        z_NEG = z[attribute == -1]  # (sampled) latent space vector of current batch of negative data(non-blond figures)
 
         if len(z_POS) > 0:
-            current_sum_POS = current_sum_POS + np.sum(z_POS, axis=0)
-            current_n_POS += len(z_POS)
-            new_mean_POS = current_sum_POS / current_n_POS
-            movement_POS = np.linalg.norm(new_mean_POS - current_mean_POS)
+            current_sum_POS = current_sum_POS + np.sum(z_POS, axis=0)   # sum of all latent space vectors(till current batch) of positive data
+            current_n_POS += len(z_POS)     # number of positive data(till current batch)
+            new_mean_POS = current_sum_POS / current_n_POS  # average position in latent space of positive data
+            movement_POS = np.linalg.norm(new_mean_POS - current_mean_POS)  # spacial distance between current and new average position
 
         if len(z_NEG) > 0:
-            current_sum_NEG = current_sum_NEG + np.sum(z_NEG, axis=0)
+            current_sum_NEG = current_sum_NEG + np.sum(z_NEG, axis=0)   # same to negative data
             current_n_NEG += len(z_NEG)
             new_mean_NEG = current_sum_NEG / current_n_NEG
-            movement_NEG = np.linalg.norm(new_mean_NEG - current_mean_NEG)
+            movement_NEG = np.linalg.norm(new_mean_NEG - current_mean_NEG)  
 
-        current_vector = new_mean_POS - new_mean_NEG
-        new_dist = np.linalg.norm(current_vector)
-        dist_change = new_dist - current_dist
+        current_vector = new_mean_POS - new_mean_NEG    # vector pointing from negative to positive average position
+        new_dist = np.linalg.norm(current_vector)   # distance between negative and positive average position
+        dist_change = new_dist - current_dist   # change of the distance
 
         print(
             str(current_n_POS)
@@ -54,12 +54,12 @@ def get_vector_from_label(data, vae, embedding_dim, label):
             + str(np.round(dist_change, 3))
         )
 
-        current_mean_POS = np.copy(new_mean_POS)
+        current_mean_POS = np.copy(new_mean_POS)        # update the current average positions and distance
         current_mean_NEG = np.copy(new_mean_NEG)
         current_dist = np.copy(new_dist)
 
-        if np.sum([movement_POS, movement_NEG]) < 0.08:
-            current_vector = current_vector / current_dist
+        if np.sum([movement_POS, movement_NEG]) < 0.08: # stop if the movement of the central points(average positions) converges, this is not a mandate condition
+            current_vector = current_vector / current_dist  # the resulting vector is the normalized vector pointing from negative to positive average position
             print("Found the " + label + " vector")
             break
 
